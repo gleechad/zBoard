@@ -73,12 +73,32 @@ const referencedCurrentGroupNames = computed(() => {
   return referenced
 })
 
-const isPolicyGroup = (name: string) => {
-  if (ruleProxyNames.value.size > 0) {
-    return ruleProxyNames.value.has(name) && !referencedCurrentGroupNames.value.has(name)
+const fallbackPolicyGroupNames = computed(() => {
+  const currentGroups = getCurrentProxyGroups()
+  const referenced = referencedCurrentGroupNames.value
+
+  return new Set(currentGroups.filter((name) => !referenced.has(name)))
+})
+
+const resolvedPolicyGroupNames = computed(() => {
+  const currentGroupSet = new Set(getCurrentProxyGroups())
+  const directRulePolicyGroups = new Set<string>()
+
+  ruleProxyNames.value.forEach((name) => {
+    if (currentGroupSet.has(name) && !referencedCurrentGroupNames.value.has(name)) {
+      directRulePolicyGroups.add(name)
+    }
+  })
+
+  if (directRulePolicyGroups.size > 0) {
+    return directRulePolicyGroups
   }
 
-  return false
+  return fallbackPolicyGroupNames.value
+})
+
+const isPolicyGroup = (name: string) => {
+  return resolvedPolicyGroupNames.value.has(name)
 }
 
 export const disableProxiesPageScroll = ref(false)
