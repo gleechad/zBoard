@@ -156,21 +156,21 @@
         <div class="setting-item-label">
           {{ $t('globalRadius') }}
         </div>
-        <div class="join max-w-64 overflow-hidden rounded-field border border-base-300 bg-base-100">
+        <div class="join radius-stepper max-w-64">
           <button
-            class="btn btn-ghost join-item h-11 min-h-11 flex-1 rounded-none border-r border-base-300 px-0 text-2xl"
+            class="btn btn-sm join-item min-w-12 px-0 text-xl"
             @click="adjustGlobalRadius(-1)"
             :disabled="globalRadius <= 0"
           >
             -
           </button>
           <div
-            class="join-item flex h-11 min-h-11 min-w-28 flex-[2] items-center justify-center rounded-none border-r border-base-300 px-4 text-xl font-medium"
+            class="input input-sm join-item pointer-events-none min-w-24 flex-1 justify-center text-center text-base font-medium"
           >
             {{ globalRadius }}px
           </div>
           <button
-            class="btn btn-ghost join-item h-11 min-h-11 flex-1 rounded-none px-0 text-2xl"
+            class="btn btn-sm join-item min-w-12 px-0 text-xl"
             @click="adjustGlobalRadius(1)"
             :disabled="globalRadius >= 24"
           >
