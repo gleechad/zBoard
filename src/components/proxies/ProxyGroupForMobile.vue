@@ -69,7 +69,7 @@
 
       <div
         v-if="displayContent"
-        class="will-change-opacity max-h-108 overflow-y-auto overscroll-contain px-3 py-2.5 transition-opacity duration-200 ease-out"
+        class="will-change-opacity max-h-108 overflow-y-auto overscroll-contain px-0 sm:px-3 py-2.5 transition-opacity duration-200 ease-out"
         :class="[SCROLLABLE_PARENT_CLASS]"
         :style="{
           width: 'calc(100vw - 1rem)',
@@ -200,7 +200,7 @@ const calcCardStyle = () => {
       transformOrigin,
       zIndex: 50,
       [positionKeyY]: 0,
-      [positionKeyX]: '0.5rem',
+      [positionKeyX]: 0,
     }
   })
 }

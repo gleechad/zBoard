@@ -3,8 +3,8 @@
     ref="cardRef"
     :class="
       twMerge(
-        'bg-base-200 flex cursor-pointer flex-col items-start rounded-md hover:shadow-md',
-        active ? 'bg-primary sm:hover:bg-primary/95' : 'sm:hover:bg-base-300',
+        'bg-base-200 flex cursor-pointer flex-col items-start rounded-md transition-colors duration-150',
+        hoverClass,
         isSmallCard ? 'gap-1 p-1' : 'gap-2 p-2',
         latencyTipAnimationClass,
       )
@@ -55,13 +55,32 @@ import { PROXY_CARD_SIZE, PROXY_SORT_TYPE } from '@/constant'
 import { checkTruncation } from '@/helper/tooltip'
 import { scrollIntoCenter } from '@/helper/utils'
 import { getIPv6ByName, getTestUrl, proxyLatencyTest, proxyMap } from '@/store/proxies'
-import { IPv6test, proxyCardSize, proxySortType, truncateProxyName } from '@/store/settings'
+import { IPv6test, proxyCardSize, proxySortType, theme, truncateProxyName } from '@/store/settings'
 import { smartWeightsMap } from '@/store/smart'
 import { twMerge } from 'tailwind-merge'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LatencyTag from './LatencyTag.vue'
 import ProxyIcon from './ProxyIcon.vue'
+
+const DARK_HOVER_THEMES = new Set([
+  'dark',
+  'dark-legacy',
+  'synthwave',
+  'halloween',
+  'forest',
+  'aqua',
+  'black',
+  'luxury',
+  'dracula',
+  'business',
+  'night',
+  'coffee',
+  'dim',
+  'sunset',
+  'abyss',
+  'silk',
+])
 
 const { t } = useI18n()
 const props = defineProps<{
@@ -82,6 +101,13 @@ const typeFormatter = (type: string) => {
   return type
 }
 const isSmallCard = computed(() => proxyCardSize.value === PROXY_CARD_SIZE.SMALL)
+const hoverClass = computed(() => {
+  if (props.active) {
+    return 'bg-primary sm:hover:bg-primary/95'
+  }
+
+  return DARK_HOVER_THEMES.has(theme.value) ? 'sm:hover:!bg-[#4b4428]' : 'sm:hover:!bg-[#f1ead6]'
+})
 const typeDescription = computed(() => {
   const type = typeFormatter(node.value.type)
   const smartUsage = smartWeightsMap.value[props.groupName ?? '']?.[props.name]
