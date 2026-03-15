@@ -30,17 +30,24 @@
         </div>
       </div>
       <div
-        class="text-base-content/60 flex items-end justify-between text-sm max-sm:flex-col max-sm:items-start"
+        v-if="subscriptionInfo"
+        class="text-base-content/60 mt-0.5 text-left text-sm"
       >
-        <div class="min-h-10">
-          <div v-if="subscriptionInfo">
-            {{ subscriptionInfo.expireStr }}
-          </div>
-          <div v-if="subscriptionInfo">
-            {{ subscriptionInfo.usageStr }}
-          </div>
+        <div>
+          {{ subscriptionInfo.expireStr }}
         </div>
-        <div>{{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}</div>
+        <div>
+          {{ subscriptionInfo.usageStr }}
+        </div>
+        <div>
+          {{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}
+        </div>
+      </div>
+      <div
+        v-else
+        class="text-base-content/60 mt-0.5 text-left text-sm"
+      >
+        {{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}
       </div>
     </template>
     <template v-slot:preview>

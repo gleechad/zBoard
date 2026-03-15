@@ -4,15 +4,72 @@
     @contextmenu.prevent.stop="handlerLatencyTest"
   >
     <template v-slot:title>
-      <div class="relative flex items-center gap-2">
+      <div
+        v-if="useLargeProxyGroupIcon"
+        class="relative flex items-start gap-3"
+      >
+        <div
+          v-if="proxyGroup.icon"
+          class="flex h-13 w-13 shrink-0 items-start justify-center overflow-visible pt-0.5"
+        >
+          <ProxyIcon
+            :icon="proxyGroup.icon"
+            :size="titleIconSize"
+            :margin="0"
+          />
+        </div>
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
+          <div class="flex min-w-0 items-center gap-1">
+            <span class="shrink-0 text-base">{{ name }}</span>
+            <span class="text-base-content/60 min-w-0 flex-1 truncate text-xs">
+              {{ proxyGroup.type }} ({{ proxiesCount }})
+            </span>
+            <button
+              v-if="manageHiddenGroup"
+              class="btn btn-circle btn-xs z-10"
+              @click.stop="handlerGroupToggle"
+            >
+              <EyeIcon
+                v-if="!hiddenGroup"
+                class="h-3 w-3"
+              />
+              <EyeSlashIcon
+                v-else
+                class="h-3 w-3"
+              />
+            </button>
+          </div>
+          <div class="text-base-content/80 flex w-full items-center">
+            <div class="flex min-w-0 flex-1 items-center gap-1 truncate pr-3 text-sm">
+              <ProxyGroupNow :name="name" />
+            </div>
+          </div>
+        </div>
+        <div class="flex w-16 shrink-0 flex-col items-end gap-2 self-stretch">
+          <LatencyTag
+            :class="twMerge('bg-base-200/50 hover:bg-base-200 z-10')"
+            :loading="isLatencyTesting"
+            :name="proxyGroup.now"
+            :group-name="proxyGroup.name"
+            @click.stop="handlerLatencyTest"
+          />
+          <div class="text-base-content/80 mt-auto w-full text-right text-xs">
+            {{ prettyBytesHelper(downloadTotal) }}/s
+          </div>
+        </div>
+      </div>
+      <div
+        v-else
+        class="relative flex items-center gap-2"
+      >
         <div class="flex flex-1 items-center gap-1">
           <ProxyName
             :name="name"
             :icon-size="proxyGroupIconSize"
             :icon-margin="proxyGroupIconMargin"
           />
-          <span class="text-base-content/60 text-xs">
-            : {{ proxyGroup.type }} ({{ proxiesCount }})
+          <span class="text-base-content/60 ml-1 text-xs">
+            {{ proxyGroup.type }} ({{ proxiesCount }})
           </span>
           <button
             v-if="manageHiddenGroup"
@@ -37,7 +94,10 @@
           @click.stop="handlerLatencyTest"
         />
       </div>
-      <div class="text-base-content/80 mt-1.5 flex items-center gap-2">
+      <div
+        v-if="!useLargeProxyGroupIcon"
+        class="text-base-content/80 mt-1.5 flex items-center gap-2"
+      >
         <div class="flex flex-1 items-center gap-1 truncate text-sm">
           <ProxyGroupNow :name="name" />
         </div>
@@ -88,6 +148,7 @@ import {
   manageHiddenGroup,
   proxyGroupIconMargin,
   proxyGroupIconSize,
+  useLargeProxyGroupIcon,
 } from '@/store/settings'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { twMerge } from 'tailwind-merge'
@@ -98,6 +159,7 @@ import ProxiesByProvider from './ProxiesByProvider.vue'
 import ProxiesContent from './ProxiesContent.vue'
 import ProxyGroupNow from './ProxyGroupNow.vue'
 import ProxyName from './ProxyName.vue'
+import ProxyIcon from './ProxyIcon.vue'
 import ProxyPreview from './ProxyPreview.vue'
 
 const props = defineProps<{
@@ -136,6 +198,8 @@ const hiddenGroup = computed({
 const handlerGroupToggle = () => {
   hiddenGroup.value = !hiddenGroup.value
 }
+
+const titleIconSize = computed(() => Math.max(proxyGroupIconSize.value, 46))
 
 useBounceOnVisible()
 </script>

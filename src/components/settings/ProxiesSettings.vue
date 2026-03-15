@@ -209,6 +209,20 @@
         </div>
 
         <div
+          v-if="isVisibleUseLargeProxyGroupIcon"
+          class="setting-item"
+        >
+          <div class="setting-item-label">
+            {{ $t('useLargeProxyGroupIcon') }}
+          </div>
+          <input
+            class="toggle"
+            type="checkbox"
+            v-model="useLargeProxyGroupIcon"
+          />
+        </div>
+
+        <div
           v-if="isVisibleProxyGroupIconSize"
           class="setting-item"
         >
@@ -273,6 +287,7 @@ import {
   speedtestUrl,
   truncateProxyName,
   twoColumnProxyGroup,
+  useLargeProxyGroupIcon,
 } from '@/store/settings'
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import { computed } from 'vue'
@@ -295,6 +310,7 @@ const isVisibleDisplayGlobalByMode = useIsSettingVisible(k.displayGlobalByMode)
 const isVisibleCustomGlobalNode = useIsSettingVisible(k.customGlobalNode)
 const isVisibleProxyPreviewType = useIsSettingVisible(k.proxyPreviewType)
 const isVisibleProxyCardSize = useIsSettingVisible(k.proxyCardSize)
+const isVisibleUseLargeProxyGroupIcon = useIsSettingVisible(k.useLargeProxyGroupIcon)
 const isVisibleProxyGroupIconSize = useIsSettingVisible(k.proxyGroupIconSize)
 const isVisibleProxyGroupIconMargin = useIsSettingVisible(k.proxyGroupIconMargin)
 const isVisibleIconSettings = useIsSettingVisible(k.icon)
@@ -329,6 +345,7 @@ const hasVisibleProxyStyleItems = computed(() => {
     (displayGlobalByMode.value && isSingBox.value && isVisibleCustomGlobalNode.value) ||
     isVisibleProxyPreviewType.value ||
     isVisibleProxyCardSize.value ||
+    isVisibleUseLargeProxyGroupIcon.value ||
     isVisibleProxyGroupIconSize.value ||
     isVisibleProxyGroupIconMargin.value
   )

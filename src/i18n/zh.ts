@@ -130,6 +130,7 @@ const zh: LANG_MESSAGE = {
   tproxyPort: 'TProxy 端口',
   tableSize: '表格尺寸',
   proxyCardSize: '节点卡片尺寸',
+  useLargeProxyGroupIcon: "\u91c7\u7528\u5927\u56fe\u6807",
   small: '小',
   normal: '正常',
   large: '大',

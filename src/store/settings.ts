@@ -178,6 +178,7 @@ export const customGlobalNode = useStorage('config/custom-global-node-name', GLO
 
 export const proxyGroupIconSize = useStorage('config/proxy-group-icon-size', 24)
 export const proxyGroupIconMargin = useStorage('config/proxy-group-icon-margin', 6)
+export const useLargeProxyGroupIcon = useStorage('config/use-large-proxy-group-icon', false)
 export const iconReflectList = useStorage<
   {
     icon: string

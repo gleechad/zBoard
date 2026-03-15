@@ -130,6 +130,7 @@ const en = {
   tproxyPort: 'TProxy port',
   tableSize: 'Table size',
   proxyCardSize: 'Proxy card size',
+  useLargeProxyGroupIcon: 'Use large proxy group icons',
   small: 'Small',
   normal: 'Normal',
   large: 'Large',
