@@ -167,3 +167,7 @@ ZASHBOARD_RULE_SOURCE_PATH
 
 - 上游项目：[zashboard](https://github.com/Zephyruso/zashboard)
 - Clash / Mihomo / sing-box 生态项目与规则集作者
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=liandu2024/AnGe-ClashBoard&type=Date)](https://www.star-history.com/#liandu2024/AnGe-ClashBoard&Date)
