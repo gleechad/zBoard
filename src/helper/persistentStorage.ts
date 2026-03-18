@@ -3,6 +3,7 @@ const STORAGE_API_URL = '/api/storage'
 const SYNC_DELAY_MS = 400
 const BACKEND_LIST_KEY = 'setup/api-list'
 const ACTIVE_UUID_KEY = 'setup/active-uuid'
+const LEGACY_ACCESS_AUTH_KEY = 'config/access-password-authenticated'
 
 let syncTimer: number | undefined
 let patchInstalled = false
@@ -37,6 +38,10 @@ export const normalizeManagedStorageSnapshot = (snapshot: Record<string, unknown
   const normalized: Record<string, string> = {}
 
   Object.entries(snapshot).forEach(([key, value]) => {
+    if (key === LEGACY_ACCESS_AUTH_KEY) {
+      return
+    }
+
     if (!isManagedKey(key) || typeof value !== 'string') {
       return
     }
@@ -76,6 +81,7 @@ export const stabilizeManagedStorageSnapshot = (
   fallbackSnapshot: Record<string, string> = {},
 ) => {
   const stabilized = { ...snapshot }
+  delete stabilized[LEGACY_ACCESS_AUTH_KEY]
   const importedBackendList = parseBackendList(stabilized[BACKEND_LIST_KEY])
   const fallbackBackendList = parseBackendList(fallbackSnapshot[BACKEND_LIST_KEY])
 
@@ -114,6 +120,8 @@ const replaceLocalSnapshot = (snapshot: Record<string, string>) => {
   Object.entries(snapshot).forEach(([key, value]) => {
     localStorage.setItem(key, value)
   })
+
+  localStorage.removeItem(LEGACY_ACCESS_AUTH_KEY)
 }
 
 export const applyManagedStorageSnapshot = (snapshot: Record<string, string>) => {

@@ -90,7 +90,7 @@ export const autoDisconnectIdleUDPTime = useStorage('config/auto-disconnect-idle
 export const accessPasswordEnabled = useStorage('config/access-password-enabled', false)
 export const accessPassword = useStorage('config/access-password', '123456')
 
-const ACCESS_AUTHENTICATED_KEY = 'config/access-password-authenticated'
+const ACCESS_AUTHENTICATED_KEY = 'access-password-authenticated'
 
 export const setAccessAuthenticated = (authenticated: boolean) => {
   if (authenticated) {

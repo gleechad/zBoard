@@ -229,7 +229,20 @@ const isVisibleDisplayAllFeatures = useIsSettingVisible(k.displayAllFeatures)
 const showAccessPassword = ref(false)
 
 watch(accessPasswordEnabled, (enabled) => {
-  setAccessAuthenticated(enabled)
+  if (!enabled) {
+    setAccessAuthenticated(false)
+    return
+  }
+
+  setAccessAuthenticated(false)
+})
+
+watch(accessPassword, () => {
+  if (!accessPasswordEnabled.value) {
+    return
+  }
+
+  setAccessAuthenticated(false)
 })
 
 const hasVisibleGeneralItems = computed(() => {
