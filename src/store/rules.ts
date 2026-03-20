@@ -46,7 +46,7 @@ export const ruleLookupLiveErrors = ref<
     message: string
   }[]
 >([])
-export const isRuleDomainLookup = computed(() => {
+export const isRuleLookupQuery = computed(() => {
   const value = rulesFilter.value.trim()
 
   return value !== '' && !value.includes(' ') && !value.includes('|')
@@ -125,20 +125,6 @@ export const fetchRules = async () => {
   ruleProviderList.value = Object.values(providerData.providers)
 }
 
-const normalizeDomainQuery = (value: string) => {
-  const input = value.trim()
-
-  if (!input) {
-    return ''
-  }
-
-  try {
-    return new URL(input.includes('://') ? input : `https://${input}`).hostname
-  } catch {
-    return input.split('/')[0]
-  }
-}
-
 export const updateRuleProviderCache = async () => {
   const response = await fetch('/api/rule-provider-cache/update', {
     method: 'POST',
@@ -199,8 +185,8 @@ export const fetchRuleProviderCacheStats = async () => {
   }
 }
 
-export const searchRuleByDomain = async () => {
-  if (!isRuleDomainLookup.value) {
+export const searchRuleByQuery = async () => {
+  if (!isRuleLookupQuery.value) {
     ruleLookupResults.value = []
     ruleLookupUnsupported.value = []
     ruleLookupLiveErrors.value = []
@@ -208,9 +194,9 @@ export const searchRuleByDomain = async () => {
     return
   }
 
-  const domain = normalizeDomainQuery(rulesFilter.value)
+  const query = rulesFilter.value.trim()
 
-  if (!domain) {
+  if (!query) {
     ruleLookupResults.value = []
     ruleLookupUnsupported.value = []
     ruleLookupLiveErrors.value = []
@@ -222,7 +208,7 @@ export const searchRuleByDomain = async () => {
   ruleLookupError.value = ''
 
   try {
-    const response = await fetch(`/api/rule-provider-search?domain=${encodeURIComponent(domain)}`)
+    const response = await fetch(`/api/rule-provider-search?query=${encodeURIComponent(query)}`)
 
     if (!response.ok) {
       const errorBody = (await response.json().catch(() => null)) as { message?: string } | null

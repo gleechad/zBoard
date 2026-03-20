@@ -3,7 +3,7 @@
     ref="cardRef"
     :class="
       twMerge(
-        'bg-base-200 flex cursor-pointer flex-col items-start rounded-md border border-base-content/[0.08] transition-colors duration-150',
+        'proxy-node-card bg-base-200 border-base-content/[0.08] flex cursor-pointer flex-col items-start rounded-md border transition-colors duration-150',
         hoverClass,
         isSmallCard ? 'gap-1 p-1' : 'gap-2 p-2',
         latencyTipAnimationClass,

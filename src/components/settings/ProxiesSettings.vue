@@ -99,10 +99,6 @@
       </div>
     </template>
     <template v-if="hasVisibleProxyStyleItems">
-      <div
-        v-if="hasVisibleLatencyItems"
-        class="divider my-4"
-      ></div>
       <div class="settings-title">
         {{ $t('proxyStyle') }}
       </div>
@@ -209,6 +205,19 @@
         </div>
 
         <div
+          v-if="isVisibleProxyCategoryFeatureEnabled"
+          class="setting-item"
+        >
+          <div class="setting-item-label">
+            {{ $t('proxyCategoryFeatureEnabled') }}
+          </div>
+          <input
+            class="toggle"
+            type="checkbox"
+            v-model="providerProxyCategoryFeatureEnabled"
+          />
+        </div>
+        <div
           v-if="isVisibleUseLargeProxyGroupIcon"
           class="setting-item"
         >
@@ -233,7 +242,7 @@
           </div>
           <input
             type="number"
-            class="input input-sm w-24 disabled:cursor-not-allowed disabled:text-base-content/45"
+            class="input input-sm disabled:text-base-content/45 w-24 disabled:cursor-not-allowed"
             v-model="proxyGroupIconSize"
             :disabled="useLargeProxyGroupIcon"
             :tabindex="useLargeProxyGroupIcon ? -1 : undefined"
@@ -250,7 +259,7 @@
           </div>
           <input
             type="number"
-            class="input input-sm w-24 disabled:cursor-not-allowed disabled:text-base-content/45"
+            class="input input-sm disabled:text-base-content/45 w-24 disabled:cursor-not-allowed"
             v-model="proxyGroupIconMargin"
             :disabled="useLargeProxyGroupIcon"
             :tabindex="useLargeProxyGroupIcon ? -1 : undefined"
@@ -259,10 +268,6 @@
       </div>
     </template>
     <template v-if="isVisibleIconSettings">
-      <div
-        v-if="hasVisibleLatencyItems || hasVisibleProxyStyleItems"
-        class="divider my-4"
-      ></div>
       <div class="settings-title">
         {{ $t('icon') }}
       </div>
@@ -287,6 +292,7 @@ import {
   lowLatency,
   mediumLatency,
   minProxyCardWidth,
+  providerProxyCategoryFeatureEnabled,
   proxyCardSize,
   proxyGroupIconMargin,
   proxyGroupIconSize,
@@ -318,6 +324,7 @@ const isVisibleDisplayGlobalByMode = useIsSettingVisible(k.displayGlobalByMode)
 const isVisibleCustomGlobalNode = useIsSettingVisible(k.customGlobalNode)
 const isVisibleProxyPreviewType = useIsSettingVisible(k.proxyPreviewType)
 const isVisibleProxyCardSize = useIsSettingVisible(k.proxyCardSize)
+const isVisibleProxyCategoryFeatureEnabled = useIsSettingVisible(k.proxyCategoryFeatureEnabled)
 const isVisibleUseLargeProxyGroupIcon = useIsSettingVisible(k.useLargeProxyGroupIcon)
 const isVisibleProxyGroupIconSize = useIsSettingVisible(k.proxyGroupIconSize)
 const isVisibleProxyGroupIconMargin = useIsSettingVisible(k.proxyGroupIconMargin)
@@ -359,6 +366,7 @@ const hasVisibleProxyStyleItems = computed(() => {
     (displayGlobalByMode.value && isSingBox.value && isVisibleCustomGlobalNode.value) ||
     isVisibleProxyPreviewType.value ||
     isVisibleProxyCardSize.value ||
+    isVisibleProxyCategoryFeatureEnabled.value ||
     isVisibleUseLargeProxyGroupIcon.value ||
     isVisibleProxyGroupIconSize.value ||
     isVisibleProxyGroupIconMargin.value

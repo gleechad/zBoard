@@ -12,7 +12,7 @@
             <span class="text-base-content/60 text-sm font-normal"> ({{ proxiesCount }}) </span>
           </div>
           <div
-            v-if="proxiesTabShow === PROXY_TAB_TYPE.PROVIDER"
+            v-if="proxiesTabShow === PROXY_TAB_TYPE.PROVIDER && providerProxyCategoryFeatureEnabled"
             class="flex shrink-0 items-center gap-2"
           >
             <div
@@ -84,9 +84,7 @@
         <div>
           {{ subscriptionInfo.usageStr }}
         </div>
-        <div>
-          {{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}
-        </div>
+        <div>{{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}</div>
       </div>
       <div
         v-else
@@ -105,7 +103,9 @@
         class="mt-4 flex flex-col gap-3 pb-4"
       >
         <ProxyCategorySection
-          v-for="({ name: categoryName, proxies: categoryProxies, availableCount, totalCount }, index) in proxyCategories"
+          v-for="(
+            { name: categoryName, proxies: categoryProxies, availableCount, totalCount }, index
+          ) in proxyCategories"
           :key="`${categoryName}-${index}`"
           :title="categoryName"
           :title-meta="`(${availableCount}/${totalCount})`"
@@ -126,7 +126,7 @@
         :render-proxies="renderProxies"
         :all-proxies="allProxies"
         :render-all="true"
-        :provider-category-enabled="providerCategoryEnabled"
+        :provider-category-enabled="providerProxyCategoryFeatureEnabled && providerCategoryEnabled"
         :provider-category-wildcard="providerCategoryWildcardModel"
       />
     </template>
@@ -152,15 +152,11 @@ import { fetchProxies, proxiesTabShow, proxyProviederList } from '@/store/proxie
 import {
   providerProxyCategoryCollapseMap,
   providerProxyCategoryEnabledMap,
+  providerProxyCategoryFeatureEnabled,
   providerProxyCategoryOrderMap,
   providerProxyCategoryWildcardMap,
 } from '@/store/settings'
-import {
-  ArrowPathIcon,
-  BoltIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, BoltIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
 import { toFinite } from 'lodash'
 import { twMerge } from 'tailwind-merge'
@@ -209,6 +205,7 @@ const canEnableProviderCategory = computed(() => {
 const shouldShowProviderCategories = computed(() => {
   return (
     proxiesTabShow.value === PROXY_TAB_TYPE.PROVIDER &&
+    providerProxyCategoryFeatureEnabled.value &&
     providerCategoryEnabled.value &&
     canEnableProviderCategory.value
   )

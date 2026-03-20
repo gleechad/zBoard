@@ -162,6 +162,10 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
       { key: `${SETTINGS_MENU_KEY.proxies}.proxyPreviewType`, label: 'proxyPreviewType' },
       { key: `${SETTINGS_MENU_KEY.proxies}.proxyCardSize`, label: 'proxyCardSize' },
       {
+        key: `${SETTINGS_MENU_KEY.proxies}.proxyCategoryFeatureEnabled`,
+        label: 'proxyCategoryFeatureEnabled',
+      },
+      {
         key: `${SETTINGS_MENU_KEY.proxies}.useLargeProxyGroupIcon`,
         label: 'useLargeProxyGroupIcon',
       },

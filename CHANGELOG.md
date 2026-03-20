@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.40](https://github.com/liandu2024/AnGe-ClashBoard/compare/v1.30...v1.40) (2026-03-20)
+
+### Features
+
+* add IP-based lookup support to rule penetration queries
+* add a wildcard grouping toggle for proxy providers and keep it enabled by default
+
+### Bug Fixes
+
+* refine the global radius behavior so different control categories keep more consistent corner styles
+* remove unnecessary divider spacing in settings to improve layout density
+
 ## [1.30](https://github.com/liandu2024/AnGe-ClashBoard/compare/v1.20.3...v1.30) (2026-03-20)
 
 ### Features

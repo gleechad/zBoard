@@ -9,7 +9,7 @@
         <template
           v-if="
             (rulesTabShow === RULE_TAB_TYPE.RULES || rulesTabShow === RULE_TAB_TYPE.PROVIDER) &&
-            isRuleDomainLookup
+            isRuleLookupQuery
           "
         >
           <div
@@ -106,20 +106,20 @@ import {
   fetchRuleProviderCacheStats,
   fetchRules,
   isRuleCacheUpdating,
-  isRuleDomainLookup,
   isRuleLookupLoading,
+  isRuleLookupQuery,
   renderRules,
   renderRulesProvider,
+  ruleCacheRefreshCount,
+  ruleCacheTotalRules,
   ruleLookupError,
   ruleLookupFallbackRule,
   ruleLookupResults,
   ruleLookupUnsupported,
-  ruleCacheRefreshCount,
-  ruleCacheTotalRules,
   rules,
   rulesFilter,
   rulesTabShow,
-  searchRuleByDomain,
+  searchRuleByQuery,
 } from '@/store/rules'
 import type { Rule } from '@/types'
 import { computed, onBeforeUnmount, watch } from 'vue'
@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
 watch(
   rulesFilter,
   () => {
-    searchRuleByDomain()
+    searchRuleByQuery()
   },
   { immediate: true },
 )
@@ -175,7 +175,7 @@ const { padding } = usePaddingForViews({
 const isVirtualScroller = computed(() => {
   return (
     rulesTabShow.value === RULE_TAB_TYPE.RULES &&
-    !isRuleDomainLookup.value &&
+    !isRuleLookupQuery.value &&
     renderRules.value.length > 200
   )
 })

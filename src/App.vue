@@ -118,7 +118,6 @@ onMounted(() => {
       immediate: true,
     },
   )
-
 })
 
 onUnmounted(() => {
@@ -135,19 +134,24 @@ const blurClass = computed(() => {
 })
 
 const appStyles = computed(() => {
-  const boxRadius = `${globalRadius.value}px`
-  const fieldRadius = `${Math.round(globalRadius.value * 0.5 * 10) / 10}px`
+  const panelRadius = `${Math.min(Math.round(globalRadius.value * 1.05 * 10) / 10, 16)}px`
+  const boxRadius = `${Math.min(Math.round(globalRadius.value * 0.85 * 10) / 10, 14)}px`
+  const navRadius = `${Math.min(Math.round(globalRadius.value * 0.75 * 10) / 10, 13)}px`
+  const fieldRadius = `${Math.min(Math.round(globalRadius.value * 0.58 * 10) / 10, 12)}px`
+  const compactRadius = `${Math.min(Math.round(globalRadius.value * 0.4 * 10) / 10, 9)}px`
 
   return [
     backgroundImage.value,
     {
       '--app-space': '0.5rem',
       '--radius-box': boxRadius,
-      '--radius-selector': boxRadius,
+      '--radius-selector': fieldRadius,
       '--radius-field': fieldRadius,
+      '--app-radius-panel': panelRadius,
       '--app-radius-box': boxRadius,
+      '--app-radius-nav': navRadius,
       '--app-radius-field': fieldRadius,
-      '--app-radius-panel': `${Math.round(globalRadius.value * 1.5 * 10) / 10}px`,
+      '--app-radius-compact': compactRadius,
     },
   ]
 })

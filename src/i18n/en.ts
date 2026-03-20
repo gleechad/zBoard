@@ -331,9 +331,9 @@ const en = {
   collapsePenetration: 'Hide Drill',
   stepwisePenetration: 'Layer by layer',
   fullExpansion: 'Expand to end',
+  proxyCategoryFeatureEnabled: 'Wildcard grouping',
   proxyCategory: 'Categorize',
-  proxyCategoryTooltip:
-    'Enter a wildcard and nodes will be grouped by the characters before it.',
+  proxyCategoryTooltip: 'Enter a wildcard and nodes will be grouped by the characters before it.',
 }
 
 export type LANG_MESSAGE = typeof en

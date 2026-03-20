@@ -327,6 +327,7 @@ const zhTW: LANG_MESSAGE = {
   collapsePenetration: '收起穿透',
   stepwisePenetration: '逐層穿透',
   fullExpansion: '穿透到底',
+  proxyCategoryFeatureEnabled: '按萬用字元分類',
   proxyCategory: '\u5206\u985e',
   proxyCategoryTooltip:
     '\u8f38\u5165\u901a\u914d\u7b26\uff0c\u7bc0\u9ede\u6703\u4f9d\u64da\u901a\u914d\u7b26\u524d\u9762\u7684\u5b57\u5143\u4f86\u5206\u985e\u3002',

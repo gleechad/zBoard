@@ -30,7 +30,6 @@
     <BackendSwitch v-if="isVisibleBackendSwitch" />
 
     <template v-if="!isSingBox && configs && isVisiblePorts">
-      <div class="divider"></div>
       <div
         class="grid max-w-3xl gap-2 gap-x-6"
         :style="`grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));`"
@@ -119,11 +118,6 @@
 
     <div
       v-if="isVisibleActions"
-      class="divider"
-    ></div>
-
-    <div
-      v-if="isVisibleActions"
       class="grid max-w-6xl gap-2 gap-y-3"
       :style="`grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));`"
     >
@@ -186,10 +180,6 @@
         {{ $t('flushSmartWeights') }}
       </button>
     </div>
-    <div
-      v-if="isVisibleDnsQuery"
-      class="divider"
-    ></div>
     <DnsQuery v-if="isVisibleDnsQuery" />
     <UpgradeCoreModal v-model="showUpgradeCoreModal" />
   </div>

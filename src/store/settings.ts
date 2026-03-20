@@ -209,6 +209,10 @@ export const iconReflectList = useStorage<
 >('config/icon-reflect-list', [])
 export const groupProxiesByProvider = useStorage('config/group-proxies-by-provider', false)
 export const useSmartGroupSort = useStorage('config/use-smart-group-sort', false)
+export const providerProxyCategoryFeatureEnabled = useStorage(
+  'config/provider-proxy-category-feature-enabled',
+  true,
+)
 export const providerProxyCategoryWildcard = useStorage(
   'config/provider-proxy-category-wildcard',
   '',

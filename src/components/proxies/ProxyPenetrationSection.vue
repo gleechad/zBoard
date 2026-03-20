@@ -2,7 +2,7 @@
   <div class="mt-4">
     <div class="flex flex-wrap items-center gap-3">
       <button
-        class="btn btn-sm min-w-24 gap-1.5"
+        class="proxy-penetration-toggle btn btn-sm min-w-24 gap-1.5"
         :class="isExpanded ? 'btn-neutral' : 'btn-outline'"
         :disabled="!canPenetrate"
         @click="togglePenetration"
@@ -16,17 +16,17 @@
       <div class="flex-1" />
       <div
         v-if="canPenetrate"
-        class="bg-base-200/80 inline-flex items-center gap-1 rounded-md p-1"
+        class="proxy-penetration-mode bg-base-200/80 inline-flex items-center gap-1 rounded-md p-1"
         :class="!canSwitchMode && 'opacity-60'"
       >
         <button
-          class="rounded-md px-3 py-1.5 text-sm font-medium leading-5 transition-colors"
+          class="proxy-penetration-mode-btn rounded-md px-3 py-1.5 text-sm leading-5 font-medium transition-colors"
           :class="
             !canSwitchMode
-              ? 'cursor-not-allowed text-base-content/35'
+              ? 'text-base-content/35 cursor-not-allowed'
               : penetrationMode === 'stepwise'
-              ? 'bg-base-100 text-base-content shadow-sm'
-              : 'cursor-pointer text-base-content/45 hover:text-base-content/70'
+                ? 'bg-base-100 text-base-content shadow-sm'
+                : 'text-base-content/45 hover:text-base-content/70 cursor-pointer'
           "
           :disabled="!canSwitchMode"
           @click="penetrationMode = 'stepwise'"
@@ -34,13 +34,13 @@
           {{ $t('stepwisePenetration') }}
         </button>
         <button
-          class="rounded-md px-3 py-1.5 text-sm font-medium leading-5 transition-colors"
+          class="proxy-penetration-mode-btn rounded-md px-3 py-1.5 text-sm leading-5 font-medium transition-colors"
           :class="
             !canSwitchMode
-              ? 'cursor-not-allowed text-base-content/35'
+              ? 'text-base-content/35 cursor-not-allowed'
               : penetrationMode === 'full'
-              ? 'bg-base-100 text-base-content shadow-sm'
-              : 'cursor-pointer text-base-content/45 hover:text-base-content/70'
+                ? 'bg-base-100 text-base-content shadow-sm'
+                : 'text-base-content/45 hover:text-base-content/70 cursor-pointer'
           "
           :disabled="!canSwitchMode"
           @click="penetrationMode = 'full'"
@@ -52,12 +52,12 @@
 
     <div
       v-if="isExpanded && renderedGroups.length"
-      class="mt-4 border-t border-base-300/60"
+      class="border-base-300/60 mt-4 border-t"
     >
       <div
         v-for="(groupName, index) in renderedGroups"
         :key="groupName"
-        class="border-b border-base-300/60 py-4 last:border-b-0"
+        class="border-base-300/60 border-b py-4 last:border-b-0"
       >
         <ProxyEmbeddedGroup
           :name="groupName"
@@ -71,10 +71,10 @@
 </template>
 
 <script setup lang="ts">
-import { useStorage } from '@vueuse/core'
 import { getProxyGroupChains } from '@/store/proxies'
 import { collapseGroupMap } from '@/store/settings'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProxyEmbeddedGroup from './ProxyEmbeddedGroup.vue'

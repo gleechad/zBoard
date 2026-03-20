@@ -2,6 +2,7 @@ import express from 'express'
 import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import http from 'node:http'
+import { isIP } from 'node:net'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
@@ -259,12 +260,13 @@ const extractRuleProviderEntries = (configPath) => {
     .filter(Boolean)
 }
 
-const getRuleProviderKind = (url, format) => {
+const getRuleProviderKind = (url, format, behavior) => {
   const normalizedUrl = url.toLowerCase()
   const normalizedFormat = format.toLowerCase()
+  const normalizedBehavior = behavior.toLowerCase()
 
   if (normalizedUrl.endsWith('.mrs') || normalizedFormat === 'mrs') {
-    if (normalizedUrl.includes('/geoip/')) {
+    if (normalizedBehavior === 'ipcidr' || normalizedUrl.includes('/geoip/')) {
       return 'mrs-ip'
     }
 
@@ -276,6 +278,62 @@ const getRuleProviderKind = (url, format) => {
 
 const normalizeDomain = (domain) =>
   domain.trim().toLowerCase().replace(/^\.+/, '').replace(/\.+$/, '')
+const normalizeKeyword = (value) => value.trim().toLowerCase()
+const normalizeLookupInput = (value) => {
+  const input = value.trim()
+
+  if (!input) {
+    return null
+  }
+
+  let candidate = input
+
+  try {
+    candidate = new URL(input.includes('://') ? input : `https://${input}`).hostname || input
+  } catch {
+    candidate = input.split('/')[0]
+  }
+
+  const trimmedCandidate = candidate.trim()
+  const ipVersion = isIP(trimmedCandidate)
+
+  if (ipVersion) {
+    const parsedIp = parseIpAddress(trimmedCandidate)
+
+    if (!parsedIp) {
+      return null
+    }
+
+    return {
+      raw: input,
+      type: 'ip',
+      value: trimmedCandidate.toLowerCase(),
+      parsedIp,
+    }
+  }
+
+  const normalizedDomainValue = normalizeDomain(trimmedCandidate)
+
+  if (/^[a-z0-9.-]+$/i.test(normalizedDomainValue) && normalizedDomainValue.includes('.')) {
+    return {
+      raw: input,
+      type: 'domain',
+      value: normalizedDomainValue,
+    }
+  }
+
+  const keyword = normalizeKeyword(input)
+
+  if (!keyword) {
+    return null
+  }
+
+  return {
+    raw: input,
+    type: 'keyword',
+    value: keyword,
+  }
+}
 const countRulesInBody = (body) => {
   if (!body || !body.trim()) {
     return 0
@@ -544,62 +602,287 @@ const isDomainMatch = (domain, ruleValue, mode) => {
   return false
 }
 
-const findMatchesInTextRules = (domain, body) => {
+const isKeywordMatch = (keyword, ruleValue) => {
+  const normalizedRule = normalizeDomain(ruleValue)
+
+  return Boolean(keyword && normalizedRule && normalizedRule.includes(keyword))
+}
+
+const parseIPv4Address = (value) => {
+  const parts = value.split('.')
+
+  if (parts.length !== 4) {
+    return null
+  }
+
+  let result = 0n
+
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) {
+      return null
+    }
+
+    const octet = Number(part)
+
+    if (octet < 0 || octet > 255) {
+      return null
+    }
+
+    result = (result << 8n) + BigInt(octet)
+  }
+
+  return {
+    version: 4,
+    bits: 32,
+    value: result,
+  }
+}
+
+const parseIPv6Address = (value) => {
+  let normalized = value.toLowerCase()
+
+  if (normalized.includes('.')) {
+    const lastColonIndex = normalized.lastIndexOf(':')
+
+    if (lastColonIndex === -1) {
+      return null
+    }
+
+    const ipv4Address = parseIPv4Address(normalized.slice(lastColonIndex + 1))
+
+    if (!ipv4Address) {
+      return null
+    }
+
+    normalized = `${normalized.slice(0, lastColonIndex)}:${Number(
+      (ipv4Address.value >> 16n) & 0xffffn,
+    ).toString(16)}:${Number(ipv4Address.value & 0xffffn).toString(16)}`
+  }
+
+  const doubleColonIndex = normalized.indexOf('::')
+
+  if (doubleColonIndex !== normalized.lastIndexOf('::')) {
+    return null
+  }
+
+  const headSegments =
+    doubleColonIndex === -1
+      ? normalized.split(':')
+      : normalized.slice(0, doubleColonIndex).split(':').filter(Boolean)
+  const tailSegments =
+    doubleColonIndex === -1
+      ? []
+      : normalized
+          .slice(doubleColonIndex + 2)
+          .split(':')
+          .filter(Boolean)
+
+  if (doubleColonIndex === -1 && headSegments.length !== 8) {
+    return null
+  }
+
+  if (headSegments.length + tailSegments.length > 8) {
+    return null
+  }
+
+  const segments =
+    doubleColonIndex === -1
+      ? headSegments
+      : [
+          ...headSegments,
+          ...Array.from({ length: 8 - headSegments.length - tailSegments.length }, () => '0'),
+          ...tailSegments,
+        ]
+
+  if (segments.length !== 8) {
+    return null
+  }
+
+  let result = 0n
+
+  for (const segment of segments) {
+    if (!/^[0-9a-f]{1,4}$/i.test(segment)) {
+      return null
+    }
+
+    result = (result << 16n) + BigInt(`0x${segment}`)
+  }
+
+  return {
+    version: 6,
+    bits: 128,
+    value: result,
+  }
+}
+
+const parseIpAddress = (value) => {
+  const ipVersion = isIP(value)
+
+  if (ipVersion === 4) {
+    return parseIPv4Address(value)
+  }
+
+  if (ipVersion === 6) {
+    return parseIPv6Address(value)
+  }
+
+  return null
+}
+
+const parseIpCidr = (value) => {
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue) {
+    return null
+  }
+
+  const parts = trimmedValue.split('/')
+
+  if (parts.length > 2) {
+    return null
+  }
+
+  const parsedAddress = parseIpAddress(parts[0])
+
+  if (!parsedAddress) {
+    return null
+  }
+
+  const prefix = parts.length === 2 ? Number.parseInt(parts[1], 10) : parsedAddress.bits
+
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > parsedAddress.bits) {
+    return null
+  }
+
+  const suffixBits = BigInt(parsedAddress.bits - prefix)
+  const network =
+    suffixBits === 0n ? parsedAddress.value : (parsedAddress.value >> suffixBits) << suffixBits
+  const size = 1n << suffixBits
+
+  return {
+    version: parsedAddress.version,
+    prefix,
+    start: network,
+    end: network + size - 1n,
+  }
+}
+
+const isIpInCidr = (parsedIp, ruleValue) => {
+  const parsedRule = parseIpCidr(ruleValue)
+
+  if (!parsedRule || parsedRule.version !== parsedIp.version) {
+    return false
+  }
+
+  return parsedIp.value >= parsedRule.start && parsedIp.value <= parsedRule.end
+}
+
+const findMatchesInTextRules = (lookup, body) => {
   const matches = []
   const lines = body.split(/\r?\n/)
 
   lines.forEach((rawLine, index) => {
     const line = rawLine.trim()
 
-    if (!line || line.startsWith('#') || line.startsWith('//')) {
+    if (!line || line.startsWith('#') || line.startsWith('//') || /^payload\s*:/i.test(line)) {
       return
     }
 
-    if (/^(payload|domain|suffix|keyword):/i.test(line)) {
-      const [, key, value] = line.match(/^([^:]+):\s*(.+)$/) || []
+    const normalizedLine = line.startsWith('- ') ? line.slice(2).trim() : line
+
+    if (!normalizedLine) {
+      return
+    }
+
+    if (/^(domain|suffix|keyword|ip-cidr|ip-cidr6):/i.test(normalizedLine)) {
+      const [, key, value] = normalizedLine.match(/^([^:]+):\s*(.+)$/) || []
 
       if (!key || !value) {
         return
       }
 
       const normalizedKey = key.toLowerCase()
+
+      if (lookup.type === 'ip') {
+        const mode = normalizedKey.includes('6') ? 'ip-cidr6' : 'ip-cidr'
+
+        if (normalizedKey.includes('ip') && isIpInCidr(lookup.parsedIp, value)) {
+          matches.push({ line: index + 1, value, mode, raw: normalizedLine })
+        }
+
+        return
+      }
+
       const mode = normalizedKey.includes('suffix')
         ? 'suffix'
         : normalizedKey.includes('keyword')
           ? 'keyword'
           : 'domain'
 
-      if (isDomainMatch(domain, value, mode)) {
-        matches.push({ line: index + 1, value, mode, raw: line })
+      const isMatched =
+        lookup.type === 'domain'
+          ? isDomainMatch(lookup.value, value, mode)
+          : isKeywordMatch(lookup.value, value)
+
+      if (isMatched) {
+        matches.push({ line: index + 1, value, mode, raw: normalizedLine })
       }
 
       return
     }
 
-    if (line.startsWith('+.')) {
-      const value = line.slice(2)
+    if (lookup.type !== 'ip' && normalizedLine.startsWith('+.')) {
+      const value = normalizedLine.slice(2)
+      const isMatched =
+        lookup.type === 'domain'
+          ? isDomainMatch(lookup.value, value, 'suffix')
+          : isKeywordMatch(lookup.value, value)
 
-      if (isDomainMatch(domain, value, 'suffix')) {
-        matches.push({ line: index + 1, value, mode: 'suffix', raw: line })
+      if (isMatched) {
+        matches.push({ line: index + 1, value, mode: 'suffix', raw: normalizedLine })
       }
 
       return
     }
 
-    const parts = line.split(',').map((part) => part.trim())
+    const parts = normalizedLine.split(',').map((part) => part.trim())
     const ruleType = parts[0]?.toUpperCase()
     const value = parts[1] || parts[0]
 
+    if (lookup.type === 'ip') {
+      const supportsIpMatch =
+        ['IP-CIDR', 'IP-CIDR6'].includes(ruleType) ||
+        (!normalizedLine.includes(',') && Boolean(parseIpCidr(normalizedLine)))
+
+      if (supportsIpMatch && isIpInCidr(lookup.parsedIp, value)) {
+        matches.push({
+          line: index + 1,
+          value,
+          mode: ruleType === 'IP-CIDR6' ? 'ip-cidr6' : 'ip-cidr',
+          raw: normalizedLine,
+        })
+      }
+
+      return
+    }
+
+    const supportsDomainMatch =
+      ['DOMAIN', 'DOMAIN-SUFFIX', 'DOMAIN-KEYWORD'].includes(ruleType) ||
+      (!ruleType.includes('IP') && !ruleType.includes('PROCESS') && !normalizedLine.includes(','))
+
+    if (!supportsDomainMatch) {
+      return
+    }
+
     const mode =
       ruleType === 'DOMAIN-SUFFIX' ? 'suffix' : ruleType === 'DOMAIN-KEYWORD' ? 'keyword' : 'domain'
+    const isMatched =
+      lookup.type === 'domain'
+        ? isDomainMatch(lookup.value, value, mode)
+        : isKeywordMatch(lookup.value, value)
 
-    if (
-      ['DOMAIN', 'DOMAIN-SUFFIX', 'DOMAIN-KEYWORD'].includes(ruleType) ||
-      (!ruleType.includes('IP') && !ruleType.includes('PROCESS') && !line.includes(','))
-    ) {
-      if (isDomainMatch(domain, value, mode)) {
-        matches.push({ line: index + 1, value, mode, raw: line })
-      }
+    if (isMatched) {
+      matches.push({ line: index + 1, value, mode, raw: normalizedLine })
     }
   })
 
@@ -614,13 +897,14 @@ const convertMrsToText = async (provider, buffer) => {
   const tempName = `${Date.now()}-${Math.random().toString(36).slice(2)}`
   const sourcePath = path.join(ruleSearchTempDir, `${tempName}.mrs`)
   const targetPath = path.join(ruleSearchTempDir, `${tempName}.txt`)
+  const behavior = provider.kind === 'mrs-ip' ? 'ipcidr' : 'domain'
 
   fs.writeFileSync(sourcePath, buffer)
 
   try {
     await execFileAsync(
       mihomoBinaryPath,
-      ['convert-ruleset', 'domain', 'mrs', sourcePath, targetPath],
+      ['convert-ruleset', behavior, 'mrs', sourcePath, targetPath],
       {
         windowsHide: true,
       },
@@ -642,7 +926,7 @@ const fetchProviderBody = async (provider) => {
     throw new Error(`HTTP ${response.status}`)
   }
 
-  return provider.kind === 'mrs-domain'
+  return provider.kind === 'mrs-domain' || provider.kind === 'mrs-ip'
     ? await convertMrsToText(provider, Buffer.from(await response.arrayBuffer()))
     : await response.text()
 }
@@ -709,7 +993,7 @@ const updateRuleProviderCache = async (options = {}) => {
     const force = options.force ?? true
     const providers = extractRuleProviderEntries(ruleSourceConfigPath).map((provider) => ({
       ...provider,
-      kind: getRuleProviderKind(provider.url, provider.format),
+      kind: getRuleProviderKind(provider.url, provider.format, provider.behavior),
     }))
     const cachedProviderMap = new Map(
       getCachedRuleProviderStatement.all().map((provider) => [provider.name, provider]),
@@ -718,7 +1002,7 @@ const updateRuleProviderCache = async (options = {}) => {
     let updatedCount = 0
     let progressRules = 0
     const fetchedItems = []
-    const unsupportedCount = providers.filter((provider) => provider.kind === 'mrs-ip').length
+    const unsupportedCount = 0
 
     activeRuleProviderUpdateController = new AbortController()
     ruleProviderUpdateState = {
@@ -735,10 +1019,6 @@ const updateRuleProviderCache = async (options = {}) => {
     for (const provider of providers) {
       if (activeRuleProviderUpdateController.signal.aborted) {
         break
-      }
-
-      if (provider.kind === 'mrs-ip') {
-        continue
       }
 
       const cachedProvider = cachedProviderMap.get(provider.name)
@@ -837,26 +1117,23 @@ const cancelRuleProviderUpdate = () => {
   return false
 }
 
-const searchRuleProviderCache = async (domain) => {
+const searchRuleProviderCache = async (query) => {
+  const lookup = normalizeLookupInput(query)
+
+  if (!lookup) {
+    throw new Error('query is invalid')
+  }
+
   const cachedProviders = getCachedRuleProviderStatement.all()
   const configuredProviders = extractRuleProviderEntries(ruleSourceConfigPath).map((provider) => ({
     ...provider,
-    kind: getRuleProviderKind(provider.url, provider.format),
+    kind: getRuleProviderKind(provider.url, provider.format, provider.behavior),
   }))
   const matches = []
-  const unsupported = configuredProviders
-    .filter((provider) => provider.kind === 'mrs-ip')
-    .map((provider) => ({
-      name: provider.name,
-      kind: provider.kind,
-      behavior: provider.behavior,
-      format: provider.format,
-      url: provider.url,
-      status: 'unsupported',
-    }))
+  const unsupported = []
 
   for (const provider of cachedProviders) {
-    const providerMatches = findMatchesInTextRules(domain, provider.body)
+    const providerMatches = findMatchesInTextRules(lookup, provider.body)
 
     if (providerMatches.length > 0) {
       matches.push({
@@ -871,7 +1148,8 @@ const searchRuleProviderCache = async (domain) => {
   }
 
   return {
-    domain,
+    query: lookup.raw,
+    queryType: lookup.type,
     mode: 'cached',
     matches,
     unsupported,
@@ -981,17 +1259,22 @@ app.get('/api/rule-provider-cache/stats', (_req, res) => {
 })
 
 app.get('/api/rule-provider-search', async (req, res) => {
-  const domain = typeof req.query.domain === 'string' ? req.query.domain : ''
+  const query =
+    typeof req.query.query === 'string'
+      ? req.query.query
+      : typeof req.query.domain === 'string'
+        ? req.query.domain
+        : ''
 
-  if (!domain.trim()) {
+  if (!query.trim()) {
     res.status(400).json({
-      message: 'domain is required',
+      message: 'query is required',
     })
     return
   }
 
   try {
-    res.json(await searchRuleProviderCache(domain))
+    res.json(await searchRuleProviderCache(query))
   } catch (error) {
     res.status(500).json({
       message: error instanceof Error ? error.message : String(error),

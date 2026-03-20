@@ -93,10 +93,6 @@
         </select>
       </div>
     </div>
-    <div
-      v-if="isVisibleSourceIPLabels"
-      class="divider"
-    ></div>
     <SourceIPLabels v-if="isVisibleSourceIPLabels" />
   </div>
 </template>

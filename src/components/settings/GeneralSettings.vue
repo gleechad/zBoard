@@ -1,9 +1,5 @@
 <template>
   <ZashboardSettings />
-  <div
-    v-if="hasVisibleGeneralItems"
-    class="divider my-4"
-  />
   <!-- dashboard -->
   <div
     v-if="hasVisibleGeneralItems"

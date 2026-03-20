@@ -51,7 +51,7 @@
 #app-content .card,
 #app-content .collapse,
 #app-content .rounded-lg {
-  border-radius: var(--app-radius-box, 1rem) !important;
+  border-radius: var(--app-radius-panel, 1.25rem) !important;
 }
 
 #app-content .btn,
@@ -63,6 +63,40 @@
 #app-content .rounded-sm,
 #app-content .rounded-field {
   border-radius: var(--app-radius-field, 0.5rem) !important;
+}
+
+#app-content .btn.btn-circle {
+  border-radius: var(--app-radius-field, 0.5rem) !important;
+}
+
+#app-content .sidebar .menu li > * {
+  border-radius: var(--app-radius-nav, 0.875rem) !important;
+}
+
+#app-content .tabs-box {
+  border-radius: var(--app-radius-field, 0.5rem) !important;
+}
+
+#app-content .tabs-box .tab {
+  border-radius: var(--app-radius-compact, 0.4rem) !important;
+}
+
+#app-content .ctrls-bar .input,
+#app-content .ctrls-bar .select,
+#app-content .ctrls-bar .join-item,
+#app-content .ctrls-bar .tabs-box,
+#app-content .ctrls-bar .btn:not(.btn-circle),
+#app-content .proxy-penetration-toggle,
+#app-content .proxy-penetration-mode {
+  border-radius: var(--app-radius-field, 0.5rem) !important;
+}
+
+#app-content .proxy-node-card {
+  border-radius: var(--app-radius-box, 1rem) !important;
+}
+
+#app-content .proxy-penetration-mode-btn {
+  border-radius: var(--app-radius-compact, 0.4rem) !important;
 }
 
 #app-content .join > .join-item {

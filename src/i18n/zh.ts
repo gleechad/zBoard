@@ -327,6 +327,7 @@ const zh: LANG_MESSAGE = {
   collapsePenetration: '收起穿透',
   stepwisePenetration: '逐层穿透',
   fullExpansion: '穿透到底',
+  proxyCategoryFeatureEnabled: '按通配符分类',
   proxyCategory: '\u5206\u7c7b',
   proxyCategoryTooltip:
     '\u8f93\u5165\u901a\u914d\u7b26\uff0c\u8282\u70b9\u4f1a\u4f9d\u636e\u901a\u914d\u7b26\u524d\u9762\u7684\u5b57\u7b26\u6765\u5206\u7c7b\u3002',

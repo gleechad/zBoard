@@ -2,7 +2,6 @@
   <!-- overview -->
   <template v-if="!splitOverviewPage && isVisibleOverviewCard">
     <OverviewCard />
-    <div class="divider my-4" />
   </template>
   <div
     v-if="hasVisibleItems"
