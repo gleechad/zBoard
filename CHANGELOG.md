@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.64](https://github.com/liandu2024/AnGe-ClashBoard/compare/v1.63...v1.64) (2026-03-23)
+
+### Features
+
+* refreshing rule caches now syncs the managed `data/rule-source.yaml` to the latest built-in `rule-providers`, and background auto-refresh checks run periodically while still respecting each provider `interval`
+
+### Refactors
+
+* reduce the managed `data/rule-source.yaml` to a minimal runtime file that keeps only the `rule-providers` section used by the local rule cache
+
 ## [1.63](https://github.com/liandu2024/AnGe-ClashBoard/compare/v1.62...v1.63) (2026-03-23)
 
 ### Bug Fixes

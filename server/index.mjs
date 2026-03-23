@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { WebSocket, WebSocketServer } from 'ws'
-import { parse as parseYaml } from 'yaml'
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
@@ -32,6 +32,16 @@ const proxyGroupRulePenetrationCache = new Map()
 const proxyGroupRulePenetrationCacheBySignature = new Map()
 const PROXY_GROUP_RULE_PENETRATION_CACHE_TTL_MS = 10 * 60 * 1000
 const PROXY_GROUP_RULE_PENETRATION_CACHE_LIMIT = 16
+const DEFAULT_RULE_PROVIDER_AUTO_REFRESH_CHECK_MS = 60 * 1000
+const configuredRuleProviderAutoRefreshCheckMs = Number.parseInt(
+  String(process.env.ZASHBOARD_RULE_PROVIDER_CACHE_AUTO_REFRESH_CHECK_MS || ''),
+  10,
+)
+const RULE_PROVIDER_AUTO_REFRESH_CHECK_MS =
+  Number.isFinite(configuredRuleProviderAutoRefreshCheckMs) &&
+  configuredRuleProviderAutoRefreshCheckMs >= 5000
+    ? configuredRuleProviderAutoRefreshCheckMs
+    : DEFAULT_RULE_PROVIDER_AUTO_REFRESH_CHECK_MS
 const serviceWorkerCleanupScript = `
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -76,7 +86,10 @@ fs.mkdirSync(ruleSearchTempDir, { recursive: true })
 if (!process.env.ZASHBOARD_RULE_SOURCE_PATH) {
   if (!fs.existsSync(defaultRuleSourceConfigPath) && fs.existsSync(bundledRuleSourceConfigPath)) {
     fs.mkdirSync(path.dirname(defaultRuleSourceConfigPath), { recursive: true })
-    fs.copyFileSync(bundledRuleSourceConfigPath, defaultRuleSourceConfigPath)
+    fs.writeFileSync(
+      defaultRuleSourceConfigPath,
+      stringifyManagedRuleSourceConfig(extractRuleProviderEntries(bundledRuleSourceConfigPath)),
+    )
   }
 }
 
@@ -216,6 +229,7 @@ const getRuleProviderCacheTotalCountStatement = db.prepare(`
 `)
 let activeRuleProviderUpdatePromise = null
 let activeRuleProviderUpdateController = null
+let ruleProviderAutoRefreshTimer = null
 let ruleProviderUpdateState = {
   isUpdating: false,
   totalProviders: 0,
@@ -266,7 +280,7 @@ const isValidEntries = (entries) => {
   )
 }
 
-const extractRuleProviderEntries = (configPath) => {
+function extractRuleProviderEntries(configPath) {
   if (!configPath || !fs.existsSync(configPath)) {
     throw new Error(
       'Rule source config is not configured. Set ZASHBOARD_RULE_SOURCE_PATH or place rule-source.yaml under data/.',
@@ -307,6 +321,105 @@ const extractRuleProviderEntries = (configPath) => {
     .filter(Boolean)
 }
 
+function getRuleProviderSignature(providers) {
+  return JSON.stringify(
+    [...providers]
+      .map((provider) => ({
+        name: provider.name,
+        behavior: provider.behavior,
+        format: provider.format,
+        interval: provider.interval,
+        url: provider.url,
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name)),
+  )
+}
+
+function stringifyManagedRuleSourceConfig(providers) {
+  const ruleProviders = Object.fromEntries(
+    [...providers].map((provider) => [
+      provider.name,
+      {
+        type: 'http',
+        interval: provider.interval,
+        behavior: provider.behavior,
+        format: provider.format,
+        url: provider.url,
+      },
+    ]),
+  )
+
+  return [
+    '# Managed rule-provider cache sources for AnGe-ClashBoard',
+    '# This file is auto-generated. Only rule-providers are kept here.',
+    '',
+    stringifyYaml({
+      'rule-providers': ruleProviders,
+    }).trimEnd(),
+    '',
+  ].join('\n')
+}
+
+function syncManagedRuleSourceConfigFromBundled() {
+  if (
+    process.env.ZASHBOARD_RULE_SOURCE_PATH ||
+    ruleSourceConfigPath !== defaultRuleSourceConfigPath ||
+    !fs.existsSync(defaultRuleSourceConfigPath) ||
+    !fs.existsSync(bundledRuleSourceConfigPath)
+  ) {
+    return {
+      changed: false,
+      updatedProviders: 0,
+      path: ruleSourceConfigPath,
+      skipped: true,
+    }
+  }
+
+  const bundledProviderEntries = extractRuleProviderEntries(bundledRuleSourceConfigPath)
+  const currentProviderEntries = fs.existsSync(defaultRuleSourceConfigPath)
+    ? extractRuleProviderEntries(defaultRuleSourceConfigPath)
+    : []
+  const currentProviderMap = new Map(currentProviderEntries.map((provider) => [provider.name, provider]))
+  const bundledProviderMap = new Map(bundledProviderEntries.map((provider) => [provider.name, provider]))
+  const currentProviderSignature = getRuleProviderSignature(currentProviderEntries)
+  const bundledProviderSignature = getRuleProviderSignature(bundledProviderEntries)
+  let updatedProviders = 0
+
+  for (const provider of bundledProviderEntries) {
+    const currentProvider = currentProviderMap.get(provider.name)
+
+    if (
+      !currentProvider ||
+      currentProvider.url !== provider.url ||
+      currentProvider.behavior !== provider.behavior ||
+      currentProvider.format !== provider.format ||
+      currentProvider.interval !== provider.interval
+    ) {
+      updatedProviders++
+    }
+  }
+
+  for (const provider of currentProviderEntries) {
+    if (!bundledProviderMap.has(provider.name)) {
+      updatedProviders++
+    }
+  }
+
+  if (currentProviderSignature !== bundledProviderSignature) {
+    fs.writeFileSync(
+      defaultRuleSourceConfigPath,
+      stringifyManagedRuleSourceConfig(bundledProviderEntries),
+    )
+  }
+
+  return {
+    changed: currentProviderSignature !== bundledProviderSignature,
+    updatedProviders,
+    path: defaultRuleSourceConfigPath,
+    skipped: false,
+  }
+}
+
 const getRuleProviderKind = (url, format, behavior) => {
   const normalizedUrl = url.toLowerCase()
   const normalizedFormat = format.toLowerCase()
@@ -326,10 +439,11 @@ const getRuleProviderKind = (url, format, behavior) => {
 const normalizeDomain = (domain) =>
   domain.trim().toLowerCase().replace(/^\.+/, '').replace(/\.+$/, '')
 const normalizeKeyword = (value) => value.trim().toLowerCase()
-const normalizeRuleProviderUrl = (value) =>
-  String(value || '')
+function normalizeRuleProviderUrl(value) {
+  return String(value || '')
     .trim()
     .replace(/^(https?:\/\/)(?:gh-)?https?:\/\//i, '$1')
+}
 const RULE_TYPE_ALIAS_MAP = new Map([
   ['DOMAIN', 'DOMAIN'],
   ['DOMAINSUFFIX', 'DOMAIN-SUFFIX'],
@@ -1614,6 +1728,28 @@ const updateRuleProviderCache = async (options = {}) => {
 
   activeRuleProviderUpdatePromise = (async () => {
     const force = options.force ?? true
+    let ruleSourceConfigSync = {
+      changed: false,
+      updatedProviders: 0,
+      path: ruleSourceConfigPath,
+      skipped: false,
+      error: '',
+    }
+
+    try {
+      ruleSourceConfigSync = {
+        ...ruleSourceConfigSync,
+        ...syncManagedRuleSourceConfigFromBundled(),
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn('Failed to sync managed rule-source.yaml from bundled config before refresh', error)
+      ruleSourceConfigSync = {
+        ...ruleSourceConfigSync,
+        error: message,
+      }
+    }
+
     const providers = extractRuleProviderEntries(ruleSourceConfigPath).map((provider) => ({
       ...provider,
       kind: getRuleProviderKind(provider.url, provider.format, provider.behavior),
@@ -1714,6 +1850,7 @@ const updateRuleProviderCache = async (options = {}) => {
       progressRules,
       cancelled,
       errors,
+      ruleSourceConfigSync,
     }
   })()
 
@@ -1738,6 +1875,47 @@ const cancelRuleProviderUpdate = () => {
   }
 
   return false
+}
+
+const runRuleProviderAutoRefresh = async (reason = 'interval') => {
+  try {
+    const result = await updateRuleProviderCache({ force: false })
+
+    if (result.updatedCount > 0 || result.errors.length > 0 || result.ruleSourceConfigSync?.changed) {
+      console.log(
+        `[rule-provider-cache] auto refresh (${reason}) finished: ${result.updatedCount}/${result.totalProviders} providers updated, ${result.totalRules} rules cached`,
+      )
+
+      if (result.ruleSourceConfigSync?.changed) {
+        console.log(
+          `[rule-provider-cache] synchronized managed rule-source.yaml before auto refresh: ${result.ruleSourceConfigSync.path}`,
+        )
+      }
+
+      if (result.errors.length > 0) {
+        console.warn(
+          '[rule-provider-cache] auto refresh completed with errors:',
+          result.errors.map((entry) => `${entry.name}: ${entry.message}`).join('; '),
+        )
+      }
+    }
+  } catch (error) {
+    console.warn(`[rule-provider-cache] auto refresh (${reason}) failed`, error)
+  }
+}
+
+const startRuleProviderAutoRefresh = () => {
+  if (ruleProviderAutoRefreshTimer) {
+    return
+  }
+
+  ruleProviderAutoRefreshTimer = setInterval(() => {
+    void runRuleProviderAutoRefresh()
+  }, RULE_PROVIDER_AUTO_REFRESH_CHECK_MS)
+
+  if (typeof ruleProviderAutoRefreshTimer.unref === 'function') {
+    ruleProviderAutoRefreshTimer.unref()
+  }
 }
 
 const searchRuleProviderCache = async (query) => {
@@ -2072,4 +2250,8 @@ websocketServer.on('connection', relayControllerWebSocket)
 server.listen(port, host, () => {
   console.log(`zashboard server listening on http://${host}:${port}`)
   console.log(`sqlite db: ${dbPath}`)
+  startRuleProviderAutoRefresh()
+  console.log(
+    `rule-provider auto refresh check interval: ${Math.round(RULE_PROVIDER_AUTO_REFRESH_CHECK_MS / 1000)}s`,
+  )
 })
