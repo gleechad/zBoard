@@ -33,6 +33,6 @@ COPY --from=builder /runtime/server ./server
 ENV NODE_ENV=production
 ENV PORT=12048
 
-EXPOSE 2048
+EXPOSE 12048
 
 CMD ["node", "server/index.mjs"]
