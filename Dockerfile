@@ -31,7 +31,7 @@ COPY config ./config
 COPY --from=builder /runtime/server ./server
 
 ENV NODE_ENV=production
-ENV PORT=2048
+ENV PORT=12048
 
 EXPOSE 2048
 
